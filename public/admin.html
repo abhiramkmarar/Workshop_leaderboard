@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>admin — ctf</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> admin@ctf:~$</div>
+    <div class="nav-links">
+      <a href="/leaderboard.html">Leaderboard</a>
+      <span id="logout-link" style="cursor:pointer;">Logout</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/competition_control.sh</span>
+    </div>
+    <div class="card-body">
+      <span class="eyebrow">Timer control</span>
+      <div class="countdown" id="countdown">--:--:--</div>
+      <p id="countdown-status">Loading…</p>
+
+      <button id="start-btn">Start Competition</button>
+      <button id="end-btn" class="danger" style="margin-left:10px;">End Competition</button>
+      <button id="reset-btn" style="margin-left:10px;">Reset Timer</button>
+      <div class="msg" id="comp-msg"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/data_management.sh</span>
+    </div>
+    <div class="card-body">
+      <h2>Data management</h2>
+      <button id="reset-scores-btn" class="danger">Reset All Scores</button>
+      <button id="reset-submissions-btn" class="danger" style="margin-left:10px;">Reset Submissions Log</button>
+      <div class="msg" id="data-msg"></div>
+
+      <p class="hint" style="margin-top:18px;">Download raw JSON data:</p>
+      <a class="btn small" href="/admin/download/users">users.json</a>
+      <a class="btn small" href="/admin/download/submissions" style="margin-left:8px;">submissions.json</a>
+      <a class="btn small" href="/admin/download/competition" style="margin-left:8px;">competition.json</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/users.sh</span>
+    </div>
+    <div class="card-body">
+      <h2>Registered users</h2>
+      <table>
+        <thead>
+          <tr><th>Username</th><th>Registered</th><th>Points</th><th>Flags</th><th>Last Submission</th><th></th></tr>
+        </thead>
+        <tbody id="users-body">
+          <tr><td colspan="6">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/leaderboard.sh</span>
+    </div>
+    <div class="card-body">
+      <h2>Leaderboard</h2>
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Username</th><th>Points</th><th>Solved Flags</th><th>Last Submission</th></tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <tr><td colspan="5">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+<script>
+async function loadUsers() {
+  const tbody = document.getElementById('users-body');
+  try {
+    const data = await api('/admin/users');
+    tbody.innerHTML = '';
+    data.users.forEach((u) => {
+      const tr = document.createElement('tr');
+      const flags = u.flagsSolved.length
+        ? u.flagsSolved.map((f) => `<span class="flag-pill">${escapeHtml(f)}</span>`).join('')
+        : '—';
+      const lastSub = u.lastSubmission ? new Date(u.lastSubmission).toLocaleString() : '—';
+      tr.innerHTML = `
+        <td>${escapeHtml(u.username)}</td>
+        <td>${new Date(u.registeredAt).toLocaleDateString()}</td>
+        <td>${u.points}</td>
+        <td>${flags}</td>
+        <td>${lastSub}</td>
+        <td><button class="danger small delete-btn" data-username="${escapeHtml(u.username)}">Delete</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+    document.querySelectorAll('.delete-btn').forEach((btn) => {
+      btn.addEventListener('click', () => deleteUser(btn.dataset.username));
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6">Could not load users.</td></tr>`;
+  }
+}
+
+async function deleteUser(username) {
+  if (!confirm(`Delete user "${username}"? This cannot be undone.`)) return;
+  try {
+    await api(`/admin/user/${encodeURIComponent(username)}`, { method: 'DELETE' });
+    loadUsers();
+    loadLeaderboardOnce('leaderboard-body');
+  } catch (err) {
+    alert(err.message);
+  }
+}
+
+document.getElementById('start-btn').addEventListener('click', async () => {
+  try {
+    const data = await api('/admin/start', { method: 'POST' });
+    showMsg(document.getElementById('comp-msg'), data.message, 'ok');
+    initCountdown();
+  } catch (err) {
+    showMsg(document.getElementById('comp-msg'), err.message, 'err');
+  }
+});
+document.getElementById('end-btn').addEventListener('click', async () => {
+  try {
+    const data = await api('/admin/end', { method: 'POST' });
+    showMsg(document.getElementById('comp-msg'), data.message, 'ok');
+    initCountdown();
+  } catch (err) {
+    showMsg(document.getElementById('comp-msg'), err.message, 'err');
+  }
+});
+document.getElementById('reset-btn').addEventListener('click', async () => {
+  if (!confirm('Reset the competition timer? This does not affect scores.')) return;
+  try {
+    const data = await api('/admin/reset', { method: 'POST' });
+    showMsg(document.getElementById('comp-msg'), data.message, 'ok');
+    initCountdown();
+  } catch (err) {
+    showMsg(document.getElementById('comp-msg'), err.message, 'err');
+  }
+});
+document.getElementById('reset-scores-btn').addEventListener('click', async () => {
+  if (!confirm('Reset ALL user scores and solved flags? This cannot be undone.')) return;
+  try {
+    const data = await api('/admin/resetScores', { method: 'POST' });
+    showMsg(document.getElementById('data-msg'), data.message, 'ok');
+    loadUsers();
+    loadLeaderboardOnce('leaderboard-body');
+  } catch (err) {
+    showMsg(document.getElementById('data-msg'), err.message, 'err');
+  }
+});
+document.getElementById('reset-submissions-btn').addEventListener('click', async () => {
+  if (!confirm('Clear the submissions audit log?')) return;
+  try {
+    const data = await api('/admin/resetSubmissions', { method: 'POST' });
+    showMsg(document.getElementById('data-msg'), data.message, 'ok');
+  } catch (err) {
+    showMsg(document.getElementById('data-msg'), err.message, 'err');
+  }
+});
+
+document.getElementById('logout-link').addEventListener('click', async () => {
+  await api('/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
+
+(async function init() {
+  try {
+    const me = await api('/me');
+    if (!me.isAdmin) { window.location.href = '/dashboard.html'; return; }
+  } catch (err) {
+    window.location.href = '/login.html';
+    return;
+  }
+  initCountdown();
+  loadUsers();
+  loadLeaderboardOnce('leaderboard-body');
+  connectLeaderboardSocket((leaderboard) => {
+    renderLeaderboardRows(document.getElementById('leaderboard-body'), leaderboard);
+    loadUsers();
+  });
+})();
+</script>
+</body>
+</html>

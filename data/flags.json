@@ -1,0 +1,17 @@
+[
+  {
+    "name": "user.txt",
+    "value": "p3nt35t{y0d4_use5_the_f0rce_2_ssh}",
+    "points": 5
+  },
+  {
+    "name": "flag2.txt",
+    "value": "p3nt35t{permissions_are_the_path_to_the_dark_side}",
+    "points": 10
+  },
+  {
+    "name": "root.txt",
+    "value": "p3nt35t{gr4nd_m4ster_of_root}",
+    "points": 15
+  }
+]

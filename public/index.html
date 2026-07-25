@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>root@ctf: ~</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> root@ctf:~$</div>
+    <div class="nav-links">
+      <a href="/login.html">Login</a>
+      <a href="/register.html">Register</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/welcome.sh</span>
+    </div>
+    <div class="card-body">
+      <span class="eyebrow">Capture The Flag</span>
+      <h1>Three boxes. Three flags. One scoreboard.</h1>
+      <p>
+        Register an account, wait for the admin to start the clock, and start hunting
+        for <code>user.txt</code>, <code>flag2.txt</code>, and <code>root.txt</code>.
+        Points are awarded the moment a correct flag lands — the leaderboard updates
+        live for everyone watching.
+      </p>
+      <a class="btn" href="/register.html">Create an account</a>
+      <a class="btn" href="/login.html" style="margin-left:10px;">I already have one</a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/rules.txt</span>
+    </div>
+    <div class="card-body">
+      <h2>How scoring works</h2>
+      <p>user.txt is worth 5 points, flag2.txt is worth 10, and root.txt is worth 15. Ties are broken by whoever finished earliest, then alphabetically.</p>
+    </div>
+  </div>
+</div>
+</body>
+</html>

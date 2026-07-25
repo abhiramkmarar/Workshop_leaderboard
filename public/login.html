@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>login — ctf</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="shell" style="max-width:460px;">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> root@ctf:~$</div>
+    <div class="nav-links"><a href="/">Home</a></div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/login.sh</span>
+    </div>
+    <div class="card-body">
+      <span class="eyebrow">Authenticate</span>
+      <h1>Log in</h1>
+
+      <form id="login-form">
+        <label for="username">Username</label>
+        <input type="text" id="username" autocomplete="username" required />
+
+        <label for="password">Password</label>
+        <input type="password" id="password" autocomplete="current-password" required />
+
+        <button type="submit">Log in</button>
+        <div class="msg" id="msg"></div>
+      </form>
+
+      <p class="hint">No account yet? <a href="/register.html">Register here</a>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const msg = document.getElementById('msg');
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  try {
+    const res = await fetch('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Login failed.');
+
+    msg.textContent = data.message;
+    msg.className = 'msg show ok';
+    window.location.href = data.isAdmin ? '/admin.html' : '/dashboard.html';
+  } catch (err) {
+    msg.textContent = err.message;
+    msg.className = 'msg show err';
+  }
+});
+</script>
+</body>
+</html>

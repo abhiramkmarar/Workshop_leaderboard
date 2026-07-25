@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>leaderboard — ctf</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> root@ctf:~$</div>
+    <div class="nav-links">
+      <a href="/dashboard.html">Dashboard</a>
+      <span id="logout-link" style="cursor:pointer;">Logout</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/leaderboard.sh --watch</span>
+    </div>
+    <div class="card-body">
+      <span class="eyebrow">Live scoreboard</span>
+      <h1>Leaderboard</h1>
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Username</th><th>Points</th><th>Solved Flags</th><th>Last Submission</th></tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <tr><td colspan="5">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+<script>
+(async function init() {
+  try {
+    await api('/me');
+  } catch (err) {
+    window.location.href = '/login.html';
+    return;
+  }
+  await loadLeaderboardOnce('leaderboard-body');
+  connectLeaderboardSocket((leaderboard) => {
+    renderLeaderboardRows(document.getElementById('leaderboard-body'), leaderboard);
+  });
+  setInterval(() => loadLeaderboardOnce('leaderboard-body'), 10000);
+})();
+
+document.getElementById('logout-link').addEventListener('click', async () => {
+  await api('/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
+</script>
+</body>
+</html>

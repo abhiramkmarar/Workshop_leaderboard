@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>dashboard — ctf</title>
+<link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="shell">
+  <div class="topbar">
+    <div class="brand"><span class="dot"></span> <span id="whoami">root@ctf:~$</span></div>
+    <div class="nav-links">
+      <a href="/leaderboard.html">Leaderboard</a>
+      <span id="logout-link" style="cursor:pointer;">Logout</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/status</span>
+    </div>
+    <div class="card-body">
+      <span class="countdown-label">Time remaining</span>
+      <div class="countdown" id="countdown">--:--:--</div>
+      <p id="countdown-status">Loading competition status…</p>
+
+      <div class="stats-grid">
+        <div class="stat"><div class="num" id="my-points">0</div><div class="label">Points</div></div>
+        <div class="stat"><div class="num" id="my-flags">0/3</div><div class="label">Flags Solved</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/submit_flag.sh</span>
+    </div>
+    <div class="card-body">
+      <h2>Submit a flag</h2>
+      <form id="flag-form">
+        <label for="flag">Flag value</label>
+        <input type="text" id="flag" placeholder="p3nt35t{...}" autocomplete="off" required />
+        <button type="submit" id="submit-btn">Submit</button>
+        <div class="msg" id="flag-msg"></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/leaderboard.sh</span>
+    </div>
+    <div class="card-body">
+      <h2>Leaderboard</h2>
+      <table>
+        <thead>
+          <tr><th>Rank</th><th>Username</th><th>Points</th><th>Solved Flags</th><th>Last Submission</th></tr>
+        </thead>
+        <tbody id="leaderboard-body">
+          <tr><td colspan="5">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/app.js"></script>
+<script>
+let currentUsername = null;
+
+async function loadMe() {
+  try {
+    const me = await api('/me');
+    currentUsername = me.username;
+    document.getElementById('whoami').textContent = `${me.username}@ctf:~$`;
+  } catch (err) {
+    window.location.href = '/login.html';
+  }
+}
+
+async function loadMyStats() {
+  try {
+    const data = await api('/leaderboard');
+    const mine = data.leaderboard.find((r) => r.username === currentUsername);
+    if (mine) {
+      document.getElementById('my-points').textContent = mine.points;
+      document.getElementById('my-flags').textContent = `${mine.flagsSolved.length}/3`;
+    }
+    renderLeaderboardRows(document.getElementById('leaderboard-body'), data.leaderboard);
+  } catch (err) {
+    // ignore transient errors
+  }
+}
+
+document.getElementById('flag-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const input = document.getElementById('flag');
+  const msg = document.getElementById('flag-msg');
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+
+  try {
+    const data = await api('/submitFlag', {
+      method: 'POST',
+      body: JSON.stringify({ flag: input.value.trim() }),
+    });
+    const kind = data.result === 'correct' ? 'ok' : 'err';
+    showMsg(msg, data.message, kind);
+    if (data.result === 'correct') {
+      input.value = '';
+      loadMyStats();
+    }
+  } catch (err) {
+    showMsg(msg, err.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+document.getElementById('logout-link').addEventListener('click', async () => {
+  await api('/logout', { method: 'POST' });
+  window.location.href = '/login.html';
+});
+
+(async function init() {
+  await loadMe();
+  initCountdown();
+  await loadMyStats();
+  connectLeaderboardSocket((leaderboard) => {
+    renderLeaderboardRows(document.getElementById('leaderboard-body'), leaderboard);
+    const mine = leaderboard.find((r) => r.username === currentUsername);
+    if (mine) {
+      document.getElementById('my-points').textContent = mine.points;
+      document.getElementById('my-flags').textContent = `${mine.flagsSolved.length}/3`;
+    }
+  });
+  setInterval(loadMyStats, 10000); // fallback polling alongside sockets
+})();
+</script>
+</body>
+</html>
