@@ -1,0 +1,17 @@
+[
+  {
+    "filename": "easy_ctf1(1).apk",
+    "label": "Challenge 1 — user.txt",
+    "description": "Start here. Worth 5 points."
+  },
+  {
+    "filename": "easy_ctf2(1).apk",
+    "label": "Challenge 2 — flag2.txt",
+    "description": "Worth 10 points."
+  },
+  {
+    "filename": "easy_ctf3.apk",
+    "label": "Challenge 3 — root.txt",
+    "description": "The final one. Worth 15 points."
+  }
+]

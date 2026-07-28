@@ -36,6 +36,17 @@
   <div class="card">
     <div class="card-titlebar">
       <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
+      <span class="path">~/downloads.sh</span>
+    </div>
+    <div class="card-body">
+      <h2>Challenge downloads</h2>
+      <div id="downloads-list"><p>Loading…</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-titlebar">
+      <span class="tl-dot red"></span><span class="tl-dot yellow"></span><span class="tl-dot green"></span>
       <span class="path">~/submit_flag.sh</span>
     </div>
     <div class="card-body">
@@ -80,6 +91,31 @@ async function loadMe() {
     document.getElementById('whoami').textContent = `${me.username}@ctf:~$`;
   } catch (err) {
     window.location.href = '/login.html';
+  }
+}
+
+async function loadDownloads() {
+  const container = document.getElementById('downloads-list');
+  try {
+    const data = await api('/downloads');
+    if (!data.challenges.length) {
+      container.innerHTML = '<p>No challenge files uploaded yet.</p>';
+      return;
+    }
+    container.innerHTML = data.challenges
+      .map(
+        (c) => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="color:var(--text)">${c.label}</div>
+            <div style="font-size:0.78rem;color:var(--text-dim)">${c.description || ''}</div>
+          </div>
+          <a class="btn small" href="/download/${encodeURIComponent(c.filename)}">Download .apk</a>
+        </div>`
+      )
+      .join('');
+  } catch (err) {
+    container.innerHTML = '<p>Could not load challenge downloads.</p>';
   }
 }
 
@@ -131,6 +167,7 @@ document.getElementById('logout-link').addEventListener('click', async () => {
   await loadMe();
   initCountdown();
   await loadMyStats();
+  loadDownloads();
   connectLeaderboardSocket((leaderboard) => {
     renderLeaderboardRows(document.getElementById('leaderboard-body'), leaderboard);
     const mine = leaderboard.find((r) => r.username === currentUsername);

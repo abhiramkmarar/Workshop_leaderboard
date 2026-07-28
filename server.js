@@ -45,7 +45,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ---- Routes ---------------------------------------------------------------
 app.use('/', authRoutes);      // /register /login /logout /me
-app.use('/', apiRoutes);       // /submitFlag /leaderboard /competition
+app.use('/', apiRoutes);       // /submitFlag /leaderboard /competition /downloads /download/:filename
 app.use('/admin', adminRoutes); // /admin/*
 
 // Simple auth-gate helper for HTML pages that require a session.

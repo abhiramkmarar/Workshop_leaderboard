@@ -4,12 +4,16 @@
 //   POST /submitFlag  - validate & score a flag submission
 //   GET  /leaderboard - public (to logged-in users) ranked scoreboard
 //   GET  /competition - current timer state
+//   GET  /downloads    - list challenge APKs
+//   GET  /download/:filename - serve a single challenge APK
 //
 // IMPORTANT: flags.json is only ever read on the server. Its contents
 // are never sent to the client in any response.
 // -----------------------------------------------------------------------
 
 const express = require('express');
+const fs = require('fs');
+const path = require('path');
 const {
   getUsers,
   saveUsers,
@@ -21,6 +25,20 @@ const {
 const { buildLeaderboard } = require('../leaderboard');
 
 const router = express.Router();
+
+// Challenge APKs live outside of /public so they can never be fetched
+// anonymously by a direct URL - only through the routes below, which
+// require a logged-in session.
+const CHALLENGES_DIR = path.join(__dirname, '..', 'challenges');
+const CHALLENGES_MANIFEST = path.join(CHALLENGES_DIR, 'manifest.json');
+
+function getChallengeManifest() {
+  try {
+    return JSON.parse(fs.readFileSync(CHALLENGES_MANIFEST, 'utf-8'));
+  } catch (err) {
+    return [];
+  }
+}
 
 // Require any logged-in user (admin or regular) for read-only routes,
 // but flag submission is only meaningful for regular (non-admin) users.
@@ -129,6 +147,38 @@ router.post('/submitFlag', requireLogin, (req, res) => {
     points: user.points,
     flagsSolved: user.flagsSolved,
   });
+});
+
+// GET /downloads - list available challenge files (name + label only)
+router.get('/downloads', requireLogin, (req, res) => {
+  const manifest = getChallengeManifest();
+  res.json({
+    challenges: manifest.map((c) => ({
+      filename: c.filename,
+      label: c.label,
+      description: c.description,
+    })),
+  });
+});
+
+// GET /download/:filename - serve one challenge APK, logged-in users only
+router.get('/download/:filename', requireLogin, (req, res) => {
+  const manifest = getChallengeManifest();
+  // Only allow filenames that are explicitly listed in the manifest -
+  // this blocks path traversal (e.g. "../server.js") and stops anyone
+  // from requesting arbitrary files off the server's disk.
+  const requested = path.basename(req.params.filename);
+  const entry = manifest.find((c) => c.filename === requested);
+  if (!entry) {
+    return res.status(404).json({ error: 'No such challenge file.' });
+  }
+
+  const filePath = path.join(CHALLENGES_DIR, entry.filename);
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ error: 'File not found on server.' });
+  }
+
+  res.download(filePath, entry.filename);
 });
 
 module.exports = router;
