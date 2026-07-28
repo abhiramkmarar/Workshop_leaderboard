@@ -1,17 +1,17 @@
 [
   {
-    "name": "user.txt",
-    "value": "p3nt35t{y0d4_use5_the_f0rce_2_ssh}",
+    "name": "easy_ctf1",
+    "value": "p3nt35t{w0w_y0u_ar3_1mpres5iv3!}",
     "points": 5
   },
   {
-    "name": "flag2.txt",
-    "value": "p3nt35t{permissions_are_the_path_to_the_dark_side}",
+    "name": "easy_ctf2",
+    "value": "p3nt35t{I_l1k3_h1ding_p4ssw0rds}",
     "points": 10
   },
   {
-    "name": "root.txt",
-    "value": "p3nt35t{gr4nd_m4ster_of_root}",
+    "name": "easy_ctf3",
+    "value": "p3nt35t{d4mn_a_4ndr01d_h4cker}",
     "points": 15
   }
 ]
